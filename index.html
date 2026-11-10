@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>שיבוץ לועדות — דמו</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px 14px 60px;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    background: #f7f6f4; color: #1c1a17; line-height: 1.5;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  .demo-banner {
+    background: #eaf1fb; border: 1px solid #c3d6f0; color: #24457a;
+    border-radius: 10px; padding: 10px 14px; font-size: .9rem; margin-bottom: 16px;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: #6b675f; margin: 0 0 14px; font-size: .95rem; }
+  .savebar {
+    position: sticky; top: 0; z-index: 5; background: #f7f6f4;
+    padding: 8px 0; font-size: .85rem; color: #3d6b4f; min-height: 34px;
+  }
+  .legend { font-size: .82rem; color: #6b675f; margin: 0 0 18px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .chip-demo { pointer-events: none; }
+  h2 { font-size: 1.1rem; margin: 24px 0 10px; }
+  .person {
+    background: #fff; border: 1px solid #e6e3dd; border-radius: 12px;
+    padding: 10px 14px; margin-bottom: 10px;
+  }
+  .pname { font-weight: 700; }
+  .pgrade { font-weight: 400; color: #6b675f; font-size: .85rem; }
+  .wants { font-size: .82rem; color: #6b675f; margin: 2px 0 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1.5px solid #d8d4cc; background: #fff; border-radius: 999px;
+    padding: 7px 14px; font-size: .9rem; font-family: inherit; cursor: pointer;
+    color: #3d3a34; position: relative; -webkit-tap-highlight-color: transparent;
+  }
+  .chip.requested { border-style: dashed; border-color: #9aa5b1; }
+  .chip.member { background: #dfe9f7; border: 1.5px solid #7ba0d4; color: #1f3f6e; }
+  .chip.head { background: #2e5c9e; border: 1.5px solid #2e5c9e; color: #fff; font-weight: 700; }
+  .chip.head::after { content: " ★"; }
+  .summary { background: #fff; border: 1px solid #e6e3dd; border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; }
+  .sum-row { padding: 6px 0; border-bottom: 1px solid #efede8; font-size: .92rem; }
+  .sum-row:last-child { border-bottom: 0; }
+  .sum-name { font-weight: 700; }
+  .sum-heads { color: #2e5c9e; font-weight: 600; }
+  .sum-count { color: #6b675f; font-size: .85rem; }
+  footer { margin-top: 28px; font-size: .82rem; color: #8a867d; text-align: center; }
+  a { color: #2e5c9e; }
+</style>
+</head>
+<body>
+<main>
+  <div class="demo-banner"><b>דמו לבדיקה.</b> בשלב זה השיבוץ נשמר רק במכשיר שלך ולא משותף עם אחרים. אחרי אישור, השיבוץ יהיה משותף לכל מי שיש לו את הקישור.</div>
+  <h1>שיבוץ לועדות</h1>
+  <p class="sub">מי עם הקישור יכול לשבץ חניכים לועדות ולסמן ראשים. הבקשות מהסקר מופיעות כרקע (מסגרת מקווקוות) — אפשר לסטות מהן.</p>
+  <div class="savebar" id="savebar"></div>
+  <div class="legend">
+    איך מסמנים: לחיצה על ועדה = משובץ, עוד לחיצה = ראש ועדה ★, עוד לחיצה = ביטול.
+    <button class="chip chip-demo">וועדה</button>
+    <button class="chip chip-demo member">משובץ</button>
+    <button class="chip chip-demo head">ראש ועדה</button>
+  </div>
+
+  <h2>מצב השיבוץ</h2>
+  <div class="summary" id="summary"></div>
+
+  <h2>החניכים (<span id="pcount"></span>)</h2>
+  <div id="people"></div>
+
+  <footer><a href="../">← לתוצאות הסקר</a></footer>
+</main>
+<script>
+const COMMITTEES = ["לוגיסטיקה","הפעלה במסלול","אוכל","ערב חברתי","צופרים","תיעוד"];
+const PEOPLE = [
+  {name:"עלמה אוריין", grade:"י׳", picks:["הפעלה במסלול"], heads:[]},
+  {name:"אמילי חי", grade:"י׳", picks:["אוכל"], heads:[]},
+  {name:"נועם זוהר", grade:"י״א", picks:["אוכל","לוגיסטיקה"], heads:[]},
+  {name:"אדם פז", grade:"י׳", picks:["אוכל"], heads:["אוכל"]},
+  {name:"אורי גולדסובל", grade:"י׳", picks:["אוכל"], heads:["אוכל"]},
+  {name:"זואי אלפדריאדיס", grade:"י׳", picks:["צופרים","תיעוד"], heads:["צופרים","תיעוד"]},
+  {name:"מאי יוסף", grade:"י׳", picks:["צופרים"], heads:["צופרים","תיעוד"]},
+  {name:"אורי פולובינציק", grade:"י׳", picks:["ערב חברתי"], heads:[]},
+  {name:"עלמה בש", grade:"י׳", picks:["ערב חברתי"], heads:[]},
+  {name:"מעין שרון", grade:"י׳", picks:["אוכל","ערב חברתי"], heads:[]},
+  {name:"אייל פרקש", grade:"י״א", picks:["לוגיסטיקה","אוכל"], heads:["לוגיסטיקה","אוכל"]},
+  {name:"הגר נתיב", grade:"י׳", picks:["ערב חברתי","אוכל"], heads:["אוכל","ערב חברתי"]},
+  {name:"נועה נתוביץ", grade:"י׳", picks:["ערב חברתי"], heads:["ערב חברתי"]},
+  {name:"מיקה", grade:"י״א", picks:["ערב חברתי"], heads:["לוגיסטיקה","ערב חברתי","תיעוד"]},
+  {name:"נועה שטרום", grade:"י׳", picks:["צופרים"], heads:["צופרים"]},
+  {name:"אורי הופלר", grade:"י׳", picks:["ערב חברתי"], heads:[]},
+  {name:"גאיה אלון", grade:"י״א", picks:["ערב חברתי","הפעלה במסלול","תיעוד"], heads:["הפעלה במסלול","ערב חברתי","תיעוד"]},
+  {name:"מיקה ברדה", grade:"י״א", picks:["ערב חברתי"], heads:["ערב חברתי"]},
+  {name:"שירה קניג", grade:"י״א", picks:["ערב חברתי","תיעוד"], heads:["ערב חברתי","תיעוד"]},
+  {name:"אמה גרשון", grade:"י״א", picks:["תיעוד","ערב חברתי"], heads:["ערב חברתי","תיעוד"]},
+  {name:"עומר", grade:"י״א", picks:["תיעוד","ערב חברתי"], heads:["ערב חברתי","תיעוד"]},
+  {name:"מאיה וימן", grade:"י״א", picks:["ערב חברתי"], heads:["ערב חברתי"]},
+  {name:"אופיר שמעונוביץ", grade:"י״א", picks:["תיעוד"], heads:["תיעוד"]},
+  {name:"נעמי", grade:"י״א", picks:["ערב חברתי","תיעוד"], heads:["ערב חברתי","תיעוד"]}
+];
+
+const LS_KEY = "vaadot-demo-assignments";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch (e) { state = {}; }
+
+if (new URLSearchParams(location.search).has("seed")) {
+  state = {
+    "אדם פז": {"אוכל":"head"},
+    "אורי גולדסובל": {"אוכל":"member"},
+    "הגר נתיב": {"אוכל":"member","ערב חברתי":"head"},
+    "אייל פרקש": {"לוגיסטיקה":"head"},
+    "מיקה": {"לוגיסטיקה":"member"},
+    "גאיה אלון": {"הפעלה במסלול":"head","תיעוד":"member"},
+    "זואי אלפדריאדיס": {"צופרים":"head","תיעוד":"member"},
+    "נועה נתוביץ": {"ערב חברתי":"member"},
+    "מעין שרון": {"ערב חברתי":"member"}
+  };
+}
+
+function save() {
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  const t = new Date();
+  document.getElementById("savebar").textContent =
+    "נשמר במכשיר ✓ " + String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0");
+}
+
+function renderSummary() {
+  const el = document.getElementById("summary");
+  el.innerHTML = COMMITTEES.map(c => {
+    const members = [], heads = [];
+    for (const p of PEOPLE) {
+      const st = state[p.name] && state[p.name][c];
+      if (st === "member") members.push(p.name);
+      if (st === "head") heads.push(p.name);
+    }
+    const total = members.length + heads.length;
+    return '<div class="sum-row"><span class="sum-name">' + c + '</span> ' +
+      '<span class="sum-count">(' + total + ' משובצים)</span>' +
+      (heads.length ? ' · <span class="sum-heads">ראש: ' + heads.join(", ") + '</span>' : '') +
+      (members.length ? '<div class="sum-count">' + members.join(", ") + '</div>' : '') +
+      '</div>';
+  }).join("");
+}
+
+function renderPeople() {
+  document.getElementById("pcount").textContent = PEOPLE.length;
+  const el = document.getElementById("people");
+  el.innerHTML = "";
+  PEOPLE.forEach((p, i) => {
+    const div = document.createElement("div");
+    div.className = "person";
+    const want = "ביקש/ה: " + p.picks.join(", ") + (p.heads.length ? " · ראש מבוקש: " + p.heads.join(", ") : "");
+    div.innerHTML =
+      '<div class="pname">' + p.name + ' <span class="pgrade">שכבה ' + p.grade + '</span></div>' +
+      '<div class="wants">' + want + '</div>' +
+      '<div class="chips">' + COMMITTEES.map(c => {
+        const st = state[p.name] && state[p.name][c];
+        const cls = "chip" + (st ? " " + st : (p.picks.includes(c) ? " requested" : ""));
+        return '<button class="' + cls + '" data-p="' + i + '" data-c="' + c + '">' + c + '</button>';
+      }).join("") + '</div>';
+    el.appendChild(div);
+  });
+  el.querySelectorAll("button.chip").forEach(b => b.addEventListener("click", () => {
+    const p = PEOPLE[+b.dataset.p].name, c = b.dataset.c;
+    state[p] = state[p] || {};
+    const cur = state[p][c];
+    if (!cur) state[p][c] = "member";
+    else if (cur === "member") state[p][c] = "head";
+    else { delete state[p][c]; if (!Object.keys(state[p]).length) delete state[p]; }
+    save(); renderPeople(); renderSummary();
+  }));
+}
+
+renderPeople();
+renderSummary();
+if (Object.keys(state).length && !new URLSearchParams(location.search).has("seed")) {
+  document.getElementById("savebar").textContent = "נטען שיבוץ שמור מהמכשיר ✓";
+}
+</script>
+</body>
+</html>
